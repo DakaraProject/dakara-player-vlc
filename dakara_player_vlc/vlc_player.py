@@ -86,6 +86,22 @@ class VlcPlayer(Worker):
         self.player = self.instance.media_player_new()
         self.player.set_fullscreen(fullscreen)
         self.event_manager = self.player.event_manager()
+        self.media_list = self.instance.media_list_new()
+        self.list_player = self.instance.media_list_player_new()
+        self.list_player.set_media_list(self.media_list)
+        self.list_player.set_media_player(self.player)
+        # Add black screen media at the top of the list
+        # And loop, so that this black screen is played when media ends
+        # This ensure there is always something playing
+        media_black_screen = self.instance.media_new_path(
+            self.idle_bg_path
+        )
+        media_black_screen.add_options(
+            *self.media_parameters,
+            "image-duration={}".format(100000),
+        )
+        self.media_list.add_media(media_black_screen)
+        self.list_player.set_playback_mode(vlc.PlaybackMode.loop)
 
         # VLC version
         self.vlc_version = vlc.libvlc_get_version().decode()
@@ -268,8 +284,8 @@ class VlcPlayer(Worker):
         Args:
             media (vlc.Media): VLC media object.
         """
-        self.player.set_media(media)
-        self.player.play()
+        self.media_list.add_media(media)
+        self.list_player.play_item(media)
 
     def play_song(self, playlist_entry):
         """Play music specified
